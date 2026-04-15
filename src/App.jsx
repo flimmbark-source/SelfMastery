@@ -516,7 +516,25 @@ export default function SelfMasteryPrototype() {
           <div className="space-y-4">
             <Card title="Primary" tone="trial">
               <div className="text-2xl font-semibold leading-tight text-zinc-50">{actionA.label}</div>
-              <button onClick={() => beginTrialAction('primary')} className="mt-4 rounded-2xl bg-zinc-100 px-4 py-3 font-medium text-black">Start this</button>
+              {actionA.mode === 'text' ? (
+                <>
+                  <textarea
+                    value={captureText}
+                    onChange={(e) => setCaptureText(e.target.value)}
+                    placeholder="Write one true sentence..."
+                    className="mt-4 min-h-[120px] w-full resize-none rounded-2xl border border-zinc-800 bg-black p-4 text-zinc-100 outline-none placeholder:text-zinc-600"
+                  />
+                  <button
+                    onClick={() => { setSelectedActionKey('primary'); setFlowStep(4); }}
+                    disabled={!captureText.trim()}
+                    className="mt-4 rounded-2xl bg-zinc-100 px-4 py-3 font-medium text-black disabled:opacity-50"
+                  >
+                    Save and continue
+                  </button>
+                </>
+              ) : (
+                <button onClick={() => beginTrialAction('primary')} className="mt-4 rounded-2xl bg-zinc-100 px-4 py-3 font-medium text-black">Start this</button>
+              )}
             </Card>
             <Card title="Alternate">
               <div className="text-lg leading-relaxed text-zinc-200">{actionB.label}</div>
@@ -706,7 +724,25 @@ export default function SelfMasteryPrototype() {
           <div className="space-y-4">
             <Card title="Primary" tone="regulate">
               <div className="text-2xl font-semibold text-zinc-100">{actionA.label}</div>
-              <button onClick={() => beginRegulateAction('primary')} className="mt-4 rounded-2xl bg-zinc-100 px-4 py-3 font-medium text-black">Use this</button>
+              {actionA.mode === 'text' ? (
+                <>
+                  <textarea
+                    value={captureText}
+                    onChange={(e) => setCaptureText(e.target.value)}
+                    placeholder="Write one true sentence..."
+                    className="mt-4 min-h-[120px] w-full resize-none rounded-2xl border border-zinc-800 bg-black p-4 text-zinc-100 outline-none placeholder:text-zinc-600"
+                  />
+                  <button
+                    onClick={() => { setSelectedActionKey('primary'); setFlowStep(4); }}
+                    disabled={!captureText.trim()}
+                    className="mt-4 rounded-2xl bg-zinc-100 px-4 py-3 font-medium text-black disabled:opacity-50"
+                  >
+                    Save and continue
+                  </button>
+                </>
+              ) : (
+                <button onClick={() => beginRegulateAction('primary')} className="mt-4 rounded-2xl bg-zinc-100 px-4 py-3 font-medium text-black">Use this</button>
+              )}
             </Card>
             <Card title="Alternate">
               <div className="text-lg text-zinc-200">{actionB.label}</div>
