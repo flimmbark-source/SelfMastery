@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 
 const STORAGE_KEY = 'self-mastery-prototype-v3';
+const INSTALL_PROMPT_DISMISSED_KEY = 'self-mastery-install-dismissed';
 
 const TRIAL_TYPES = ['Urge', 'Avoidance', 'Fog', 'Fatigue', 'Pain', 'Emotion'];
 const MASTERY_TYPES = [
@@ -308,6 +309,8 @@ export default function SelfMasteryPrototype() {
   const [checkIn, setCheckIn] = useState({});
   const [captureText, setCaptureText] = useState('');
   const [captureChoice, setCaptureChoice] = useState('');
+  const [installPromptEvent, setInstallPromptEvent] = useState(null);
+  const [installBannerVisible, setInstallBannerVisible] = useState(false);
 
   useEffect(() => {
     setData(loadData());
@@ -316,6 +319,32 @@ export default function SelfMasteryPrototype() {
   useEffect(() => {
     saveData(data);
   }, [data]);
+
+  useEffect(() => {
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    const dismissed = localStorage.getItem(INSTALL_PROMPT_DISMISSED_KEY) === 'true';
+    if (isStandalone || dismissed) return;
+
+    function onBeforeInstallPrompt(event) {
+      event.preventDefault();
+      setInstallPromptEvent(event);
+      setInstallBannerVisible(true);
+    }
+
+    function onAppInstalled() {
+      setInstallBannerVisible(false);
+      setInstallPromptEvent(null);
+      localStorage.setItem(INSTALL_PROMPT_DISMISSED_KEY, 'true');
+    }
+
+    window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt);
+    window.addEventListener('appinstalled', onAppInstalled);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', onBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', onAppInstalled);
+    };
+  }, []);
 
   useEffect(() => {
     if ((view === 'trial' || view === 'regulate') && flowStep === 3 && holdSeconds > 0) {
@@ -443,6 +472,22 @@ export default function SelfMasteryPrototype() {
 
   function dismissTutorial() {
     setData((prev) => ({ ...prev, tutorialSeen: true }));
+  }
+
+  async function installApp() {
+    if (!installPromptEvent) return;
+    installPromptEvent.prompt();
+    const { outcome } = await installPromptEvent.userChoice;
+    if (outcome === 'accepted') {
+      localStorage.setItem(INSTALL_PROMPT_DISMISSED_KEY, 'true');
+      setInstallBannerVisible(false);
+    }
+    setInstallPromptEvent(null);
+  }
+
+  function dismissInstallPrompt() {
+    localStorage.setItem(INSTALL_PROMPT_DISMISSED_KEY, 'true');
+    setInstallBannerVisible(false);
   }
 
   function TrialView() {
@@ -821,6 +866,33 @@ export default function SelfMasteryPrototype() {
     );
   }
 
+  function InstallPromptBanner() {
+    if (!installBannerVisible || !installPromptEvent) return null;
+
+    return (
+      <div className="fixed inset-x-0 bottom-3 z-40 flex justify-center px-4">
+        <div className="w-full max-w-md rounded-3xl border border-zinc-800 bg-zinc-950/95 p-4 shadow-2xl backdrop-blur">
+          <div className="text-sm font-semibold text-zinc-100">Install Self Mastery</div>
+          <div className="mt-1 text-sm text-zinc-400">Add this app to your home screen for faster access.</div>
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <button
+              onClick={dismissInstallPrompt}
+              className="rounded-2xl border border-zinc-800 px-4 py-3 text-sm text-zinc-300"
+            >
+              Not now
+            </button>
+            <button
+              onClick={installApp}
+              className="rounded-2xl bg-zinc-100 px-4 py-3 text-sm font-medium text-black"
+            >
+              Install app
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   function HomeView() {
     return (
       <div>
@@ -895,6 +967,7 @@ export default function SelfMasteryPrototype() {
         <CurrentView />
       </div>
       <TutorialOverlay />
+      <InstallPromptBanner />
     </div>
   );
 }
