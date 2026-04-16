@@ -7,12 +7,13 @@ const TRIAL_TYPES = ['Urge', 'Avoidance', 'Fog', 'Fatigue', 'Pain', 'Emotion'];
 const MASTERY_TYPES = [
   'Returned After Avoidance',
   'Completed Under Resistance',
+  'Navigated an Urge',
   'Replaced Bad Impulse',
   'Endured Discomfort',
   'Protected Energy',
   'Advanced Something Important'
 ];
-const MASTERY_CONTEXTS = ['Routine', 'Work', 'Health', 'Emotion', 'Environment', 'Relationship'];
+const MASTERY_CONTEXTS = ['Routine', 'Work', 'Health', 'Emotion', 'Urge', 'Environment', 'Relationship'];
 const REINFORCEMENTS = ['Discipline', 'Self-trust', 'Stability', 'Restraint', 'Courage', 'Consistency'];
 const REGULATE_NEEDS = ['Calm', 'Clarity', 'Grounding', 'Movement', 'Rest', 'Focus'];
 const CHECKIN_FIELDS = {
@@ -24,28 +25,28 @@ const EMOTIONS = ['Angry', 'Anxious', 'Ashamed', 'Overwhelmed', 'Restless', 'Sad
 
 const TRIAL_ACTIONS = {
   Urge: {
-    primary: { label: 'Physically leave the trigger space now.', mode: 'timer', duration: 120 },
-    alternate: { label: 'Start a 60-second hold and keep your hands occupied.', mode: 'timer', duration: 60 }
+    primary: { label: 'Physically leave the trigger space now.', mode: 'timer', duration: 120, tags: ['distance', 'triggered', 'with people', 'out'] },
+    alternate: { label: 'Start a 60-second hold and keep your hands occupied.', mode: 'timer', duration: 60, tags: ['pause', 'grounding', 'restless', 'on phone'] }
   },
   Avoidance: {
-    primary: { label: 'Do one visible step right now.', mode: 'timer', duration: 90 },
-    alternate: { label: 'Reduce the task to a 2-minute start.', mode: 'timer', duration: 120 }
+    primary: { label: 'Do one visible step right now.', mode: 'timer', duration: 90, tags: ['focus', 'at desk', 'with people'] },
+    alternate: { label: 'Reduce the task to a 2-minute start.', mode: 'timer', duration: 120, tags: ['pause', 'overwhelmed', 'tired'] }
   },
   Fog: {
-    primary: { label: 'Write one true sentence.', mode: 'text', prompt: 'Write one true sentence about what is going on right now.' },
-    alternate: { label: 'Choose one task only and hide the rest.', mode: 'timer', duration: 90 }
+    primary: { label: 'Write one true sentence.', mode: 'text', prompt: 'Write one true sentence about what is going on right now.', tags: ['focus', 'numb', 'overwhelmed'] },
+    alternate: { label: 'Choose one task only and hide the rest.', mode: 'timer', duration: 90, tags: ['focus', 'at desk', 'avoiding'] }
   },
   Fatigue: {
-    primary: { label: 'Lower demand and choose one essential action.', mode: 'timer', duration: 90 },
-    alternate: { label: 'Stand up, drink water, and reset posture.', mode: 'timer', duration: 60 }
+    primary: { label: 'Lower demand and choose one essential action.', mode: 'timer', duration: 90, tags: ['relief', 'pause', 'tired'] },
+    alternate: { label: 'Stand up, drink water, and reset posture.', mode: 'timer', duration: 60, tags: ['movement', 'grounding', 'in bed'] }
   },
   Pain: {
-    primary: { label: 'Change position and reduce effort now.', mode: 'timer', duration: 90 },
-    alternate: { label: 'Shift into recovery mode for 5 minutes.', mode: 'timer', duration: 120 }
+    primary: { label: 'Change position and reduce effort now.', mode: 'timer', duration: 90, tags: ['relief', 'in bed', 'at desk'] },
+    alternate: { label: 'Shift into recovery mode for 5 minutes.', mode: 'timer', duration: 120, tags: ['distance', 'pause', 'overwhelmed'] }
   },
   Emotion: {
-    primary: { label: 'Name the emotion before acting.', mode: 'select', prompt: 'What emotion is hottest right now?', options: EMOTIONS },
-    alternate: { label: 'Leave the situation and pause for 2 minutes.', mode: 'timer', duration: 120 }
+    primary: { label: 'Name the emotion before acting.', mode: 'select', prompt: 'What emotion is hottest right now?', options: EMOTIONS, tags: ['grounding', 'triggered', 'with people'] },
+    alternate: { label: 'Leave the situation and pause for 2 minutes.', mode: 'timer', duration: 120, tags: ['distance', 'pause', 'out'] }
   }
 };
 
@@ -81,6 +82,11 @@ const REGULATE_SCAN = {
   Mind: ['Foggy', 'Restless', 'Clear'],
   Emotion: ['Low', 'Uneasy', 'Steady'],
   Energy: ['Low', 'Medium', 'High']
+};
+const TRIAL_CONTEXT_GROUPS = {
+  where: ['In bed', 'At desk', 'On phone', 'Alone', 'With people', 'Out'],
+  state: ['Restless', 'Triggered', 'Tired', 'Avoiding', 'Overwhelmed', 'Numb'],
+  need: ['Distance', 'Pause', 'Grounding', 'Movement', 'Relief', 'Focus']
 };
 
 const INITIAL_DATA = {
@@ -196,6 +202,10 @@ function getRelativeTime(ts) {
   return `${days}d ago`;
 }
 
+function createTimestamp() {
+  return new Date().getTime();
+}
+
 function summarizeInsight(entries, morningCheckIn) {
   if (morningCheckIn && !entries.length) {
     return `Today starts at ${morningCheckIn.Energy?.toLowerCase() || 'unknown'} energy and ${morningCheckIn.Risk?.toLowerCase() || 'unknown'} risk.`;
@@ -263,7 +273,7 @@ function deriveProgress(entries) {
     if (theme === 'Self-trust') value += masteryEntries.filter((e) => e.reinforcement === 'Self-trust').length * 12;
     if (theme === 'Restraint') value += trialEntries.filter((e) => e.outcome === 'Held').length * 10;
     if (theme === 'Stability') value += masteryEntries.filter((e) => e.reinforcement === 'Stability').length * 12;
-    if (theme === 'Follow-through') value += masteryEntries.filter((e) => ['Returned After Avoidance', 'Completed Under Resistance', 'Advanced Something Important'].includes(e.masteryType)).length * 8;
+    if (theme === 'Follow-through') value += masteryEntries.filter((e) => ['Returned After Avoidance', 'Completed Under Resistance', 'Navigated an Urge', 'Advanced Something Important'].includes(e.masteryType)).length * 8;
     return { theme, value: Math.min(value, 100) };
   });
 
@@ -299,11 +309,13 @@ export default function SelfMasteryPrototype() {
   const [view, setView] = useState('home');
   const [flowStep, setFlowStep] = useState(0);
   const [trialType, setTrialType] = useState('');
+  const [trialContext, setTrialContext] = useState({ where: '', state: '', need: '' });
   const [selectedActionKey, setSelectedActionKey] = useState('primary');
   const [holdSeconds, setHoldSeconds] = useState(60);
   const [masteryType, setMasteryType] = useState('');
   const [masteryContext, setMasteryContext] = useState('');
   const [reinforcement, setReinforcement] = useState('');
+  const [masteryNote, setMasteryNote] = useState('');
   const [regulateScan, setRegulateScan] = useState({});
   const [regulateNeed, setRegulateNeed] = useState('');
   const [checkIn, setCheckIn] = useState({});
@@ -363,11 +375,13 @@ export default function SelfMasteryPrototype() {
     setView(nextView);
     setFlowStep(0);
     setTrialType('');
+    setTrialContext({ where: '', state: '', need: '' });
     setSelectedActionKey('primary');
     setHoldSeconds(60);
     setMasteryType('');
     setMasteryContext('');
     setReinforcement('');
+    setMasteryNote('');
     setRegulateScan({});
     setRegulateNeed('');
     setCheckIn({});
@@ -384,8 +398,32 @@ export default function SelfMasteryPrototype() {
     }));
   }
 
+  function selectTrialContext(group, value) {
+    setTrialContext((prev) => ({
+      ...prev,
+      [group]: prev[group] === value ? '' : value
+    }));
+  }
+
+  function getContextWeightedTrialActions() {
+    if (!trialType) return { primary: null, alternate: null };
+    const normalizedContext = [trialContext.where, trialContext.state, trialContext.need]
+      .filter(Boolean)
+      .map((item) => item.toLowerCase());
+    const actionList = Object.entries(TRIAL_ACTIONS[trialType]).map(([key, action]) => {
+      const score = normalizedContext.reduce((total, tag) => total + (action.tags?.includes(tag) ? 1 : 0), 0);
+      return { key, action, score };
+    }).sort((a, b) => b.score - a.score);
+
+    return {
+      primary: actionList[0] || null,
+      alternate: actionList[1] || null
+    };
+  }
+
   function currentTrialAction() {
-    return trialType ? TRIAL_ACTIONS[trialType][selectedActionKey] : null;
+    const weighted = getContextWeightedTrialActions();
+    return selectedActionKey === 'primary' ? weighted.primary?.action : weighted.alternate?.action;
   }
 
   function currentRegulateAction() {
@@ -393,8 +431,10 @@ export default function SelfMasteryPrototype() {
   }
 
   function beginTrialAction(actionKey) {
-    const action = TRIAL_ACTIONS[trialType][actionKey];
+    const weighted = getContextWeightedTrialActions();
+    const action = actionKey === 'primary' ? weighted.primary?.action : weighted.alternate?.action;
     setSelectedActionKey(actionKey);
+    if (!action) return;
     if (action.mode === 'timer') {
       setHoldSeconds(action.duration);
       setFlowStep(3);
@@ -423,9 +463,10 @@ export default function SelfMasteryPrototype() {
       trialType,
       selectedActionKey,
       selectedActionLabel: action?.label || '',
+      trialContext,
       outcome,
       note,
-      timestamp: Date.now()
+      timestamp: createTimestamp()
     });
     resetFlow('home');
   }
@@ -437,7 +478,8 @@ export default function SelfMasteryPrototype() {
       masteryType,
       context: masteryContext,
       reinforcement,
-      timestamp: Date.now()
+      note: masteryNote.trim(),
+      timestamp: createTimestamp()
     });
     resetFlow('home');
   }
@@ -453,7 +495,7 @@ export default function SelfMasteryPrototype() {
       action: action?.label || '',
       result,
       note,
-      timestamp: Date.now()
+      timestamp: createTimestamp()
     });
     if (result === 'Worse') {
       resetFlow('trial');
@@ -465,7 +507,7 @@ export default function SelfMasteryPrototype() {
   function completeCheckIn() {
     setData((prev) => ({
       ...prev,
-      morningCheckIn: { ...checkIn, timestamp: Date.now() }
+      morningCheckIn: { ...checkIn, timestamp: createTimestamp() }
     }));
     resetFlow('home');
   }
@@ -506,15 +548,34 @@ export default function SelfMasteryPrototype() {
       );
     }
 
-    const actionA = trialType ? TRIAL_ACTIONS[trialType].primary : null;
-    const actionB = trialType ? TRIAL_ACTIONS[trialType].alternate : null;
+    const trialActionOptions = getContextWeightedTrialActions();
+    const actionA = trialActionOptions.primary?.action;
+    const actionB = trialActionOptions.alternate?.action;
+    const actionAContextHits = trialActionOptions.primary?.score || 0;
 
     if (flowStep === 1) {
       return (
         <div>
           <Header title="Immediate Action" subtitle={trialType} onBack={() => setFlowStep(0)} />
           <div className="space-y-4">
+            <Card title="Quick context (optional)">
+              <div className="space-y-4">
+                {Object.entries(TRIAL_CONTEXT_GROUPS).map(([group, options]) => (
+                  <div key={group}>
+                    <div className="mb-2 text-xs uppercase tracking-[0.18em] text-zinc-500">{group}</div>
+                    <div className="flex flex-wrap gap-2">
+                      {options.map((option) => (
+                        <Pill key={option} selected={trialContext[group] === option} onClick={() => selectTrialContext(group, option)}>
+                          {option}
+                        </Pill>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
             <Card title="Primary" tone="trial">
+              {actionAContextHits > 0 ? <div className="mb-2 text-xs uppercase tracking-[0.14em] text-red-300/90">Adjusted for your context</div> : null}
               <div className="text-2xl font-semibold leading-tight text-zinc-50">{actionA.label}</div>
               {actionA.mode === 'text' ? (
                 <>
@@ -658,11 +719,31 @@ export default function SelfMasteryPrototype() {
         </div>
       );
     }
+    if (flowStep === 3) {
+      return (
+        <div>
+          <Header title="Capture meaning" subtitle="Short note for your future self." onBack={() => setFlowStep(2)} />
+          <Card tone="mastery">
+            <div className="text-sm text-zinc-400">What happened? What worked? What do you want remembered?</div>
+            <textarea
+              value={masteryNote}
+              onChange={(e) => setMasteryNote(e.target.value)}
+              placeholder="A few grounded lines..."
+              className="mt-4 min-h-[140px] w-full resize-none rounded-2xl border border-zinc-800 bg-black p-4 text-zinc-100 outline-none placeholder:text-zinc-600"
+            />
+          </Card>
+          <div className="mt-4">
+            <Button variant="accent" disabled={!masteryNote.trim()} onClick={() => setFlowStep(4)}>Continue</Button>
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="flex min-h-[70vh] flex-col justify-center">
         <Card tone="mastery" title="Ready to Save">
           <div className="text-2xl font-semibold text-zinc-100">{masteryType}</div>
           <div className="mt-2 text-zinc-400">{masteryContext}{reinforcement ? ` • ${reinforcement}` : ''}</div>
+          <div className="mt-4 rounded-2xl border border-zinc-800 bg-black p-3 text-sm text-zinc-300">{masteryNote}</div>
         </Card>
         <div className="mt-4">
           <Button variant="accent" onClick={completeMastery}>Save mastery</Button>
