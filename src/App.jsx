@@ -22,32 +22,79 @@ const CHECKIN_FIELDS = {
   Risk: ['Low', 'Medium', 'High']
 };
 const EMOTIONS = ['Angry', 'Anxious', 'Ashamed', 'Overwhelmed', 'Restless', 'Sad'];
+const ACTION_FAMILIES = ['Leave', 'Remove', 'Move', 'Ground', 'Reduce', 'Write', 'Name', 'Replace', 'Delay', 'Reach'];
+
+const createTrialAction = ({
+  id,
+  label,
+  family,
+  mode,
+  duration,
+  prompt,
+  options,
+  tags = [],
+  tier = 'primary',
+  baseScore = 1
+}) => ({
+  id,
+  label,
+  family,
+  mode,
+  duration,
+  prompt,
+  options,
+  tags: tags.map((tag) => tag.toLowerCase()),
+  tier,
+  baseScore
+});
 
 const TRIAL_ACTIONS = {
-  Urge: {
-    primary: { label: 'Physically leave the trigger space now.', mode: 'timer', duration: 120, tags: ['distance', 'triggered', 'with people', 'out'] },
-    alternate: { label: 'Start a 60-second hold and keep your hands occupied.', mode: 'timer', duration: 60, tags: ['pause', 'grounding', 'restless', 'on phone'] }
-  },
-  Avoidance: {
-    primary: { label: 'Do one visible step right now.', mode: 'timer', duration: 90, tags: ['focus', 'at desk', 'with people'] },
-    alternate: { label: 'Reduce the task to a 2-minute start.', mode: 'timer', duration: 120, tags: ['pause', 'overwhelmed', 'tired'] }
-  },
-  Fog: {
-    primary: { label: 'Write one true sentence.', mode: 'text', prompt: 'Write one true sentence about what is going on right now.', tags: ['focus', 'numb', 'overwhelmed'] },
-    alternate: { label: 'Choose one task only and hide the rest.', mode: 'timer', duration: 90, tags: ['focus', 'at desk', 'avoiding'] }
-  },
-  Fatigue: {
-    primary: { label: 'Lower demand and choose one essential action.', mode: 'timer', duration: 90, tags: ['relief', 'pause', 'tired'] },
-    alternate: { label: 'Stand up, drink water, and reset posture.', mode: 'timer', duration: 60, tags: ['movement', 'grounding', 'in bed'] }
-  },
-  Pain: {
-    primary: { label: 'Change position and reduce effort now.', mode: 'timer', duration: 90, tags: ['relief', 'in bed', 'at desk'] },
-    alternate: { label: 'Shift into recovery mode for 5 minutes.', mode: 'timer', duration: 120, tags: ['distance', 'pause', 'overwhelmed'] }
-  },
-  Emotion: {
-    primary: { label: 'Name the emotion before acting.', mode: 'select', prompt: 'What emotion is hottest right now?', options: EMOTIONS, tags: ['grounding', 'triggered', 'with people'] },
-    alternate: { label: 'Leave the situation and pause for 2 minutes.', mode: 'timer', duration: 120, tags: ['distance', 'pause', 'out'] }
-  }
+  Urge: [
+    createTrialAction({ id: 'urge-phone-away', label: 'Put the phone out of reach.', family: ACTION_FAMILIES[1], mode: 'timer', duration: 60, tags: ['on phone', 'distance', 'triggered'], baseScore: 2 }),
+    createTrialAction({ id: 'urge-leave-room', label: 'Leave the room now.', family: ACTION_FAMILIES[0], mode: 'timer', duration: 90, tags: ['distance', 'out', 'with people', 'triggered'], baseScore: 2 }),
+    createTrialAction({ id: 'urge-bed-exit', label: 'Get out of bed immediately.', family: ACTION_FAMILIES[0], mode: 'timer', duration: 75, tags: ['in bed', 'movement', 'distance'], baseScore: 2 }),
+    createTrialAction({ id: 'urge-walk', label: 'Walk for 2 minutes.', family: ACTION_FAMILIES[2], mode: 'timer', duration: 120, tags: ['restless', 'movement', 'overwhelmed'], baseScore: 2 }),
+    createTrialAction({ id: 'urge-light-reset', label: 'Turn on the light and reset position.', family: ACTION_FAMILIES[3], mode: 'timer', duration: 60, tags: ['in bed', 'tired', 'grounding', 'numb'] }),
+    createTrialAction({ id: 'urge-hands', label: 'Keep your hands occupied for 60 seconds.', family: ACTION_FAMILIES[2], mode: 'timer', duration: 60, tags: ['restless', 'on phone', 'pause'] }),
+    createTrialAction({ id: 'urge-write', label: 'Write one true sentence about what is happening.', family: ACTION_FAMILIES[5], mode: 'text', prompt: 'Write one true sentence about what is happening right now.', tags: ['focus', 'grounding', 'overwhelmed'] }),
+    createTrialAction({ id: 'urge-name', label: 'Name the emotion before acting.', family: ACTION_FAMILIES[6], mode: 'select', prompt: 'What emotion is hottest right now?', options: EMOTIONS, tags: ['grounding', 'triggered', 'numb'] }),
+    createTrialAction({ id: 'urge-replace', label: 'Open a healthy replacement activity.', family: ACTION_FAMILIES[7], mode: 'timer', duration: 90, tags: ['focus', 'relief', 'avoiding'] }),
+    createTrialAction({ id: 'urge-secrecy', label: 'Step away from secrecy and move to a visible space.', family: ACTION_FAMILIES[9], mode: 'timer', duration: 90, tags: ['alone', 'distance', 'triggered'] }),
+    createTrialAction({ id: 'urge-less-risk', label: 'Move to a less risky environment now.', family: ACTION_FAMILIES[0], mode: 'timer', duration: 90, tags: ['alone', 'out', 'distance'] }),
+    createTrialAction({ id: 'urge-hold', label: 'Start a 60-second hold.', family: ACTION_FAMILIES[8], mode: 'timer', duration: 60, tags: ['pause', 'grounding', 'tired', 'overwhelmed'], tier: 'secondary', baseScore: 2 }),
+    createTrialAction({ id: 'urge-stand-breathe', label: 'Stand and breathe for 60 seconds.', family: ACTION_FAMILIES[3], mode: 'timer', duration: 60, tags: ['grounding', 'tired', 'in bed'], tier: 'secondary' })
+  ],
+  Avoidance: [
+    createTrialAction({ id: 'avoid-step', label: 'Do one visible step right now.', family: ACTION_FAMILIES[4], mode: 'timer', duration: 90, tags: ['focus', 'at desk', 'with people'], baseScore: 2 }),
+    createTrialAction({ id: 'avoid-reduce', label: 'Reduce the task to one visible step.', family: ACTION_FAMILIES[4], mode: 'text', prompt: 'Write the one visible next step.', tags: ['focus', 'overwhelmed', 'avoiding'], baseScore: 2 }),
+    createTrialAction({ id: 'avoid-start', label: 'Start for 2 minutes only.', family: ACTION_FAMILIES[8], mode: 'timer', duration: 120, tags: ['pause', 'tired', 'at desk'] }),
+    createTrialAction({ id: 'avoid-name', label: 'Name what you are avoiding in one sentence.', family: ACTION_FAMILIES[6], mode: 'text', prompt: 'What are you avoiding right now?', tags: ['numb', 'avoiding'] }),
+    createTrialAction({ id: 'avoid-alt', label: 'Stand up and reset posture before restarting.', family: ACTION_FAMILIES[2], mode: 'timer', duration: 60, tags: ['movement', 'tired'], tier: 'secondary' })
+  ],
+  Fog: [
+    createTrialAction({ id: 'fog-write', label: 'Write one true sentence.', family: ACTION_FAMILIES[5], mode: 'text', prompt: 'Write one true sentence about what is going on right now.', tags: ['focus', 'numb', 'overwhelmed'], baseScore: 2 }),
+    createTrialAction({ id: 'fog-one-task', label: 'Choose one task only and hide the rest.', family: ACTION_FAMILIES[4], mode: 'timer', duration: 90, tags: ['focus', 'at desk', 'avoiding'], baseScore: 2 }),
+    createTrialAction({ id: 'fog-name', label: 'Name the emotion before deciding anything.', family: ACTION_FAMILIES[6], mode: 'select', prompt: 'What emotion is strongest right now?', options: EMOTIONS, tags: ['grounding', 'triggered'] }),
+    createTrialAction({ id: 'fog-alt', label: 'Step outside for one minute of air.', family: ACTION_FAMILIES[0], mode: 'timer', duration: 60, tags: ['out', 'relief'], tier: 'secondary' })
+  ],
+  Fatigue: [
+    createTrialAction({ id: 'fatigue-essential', label: 'Lower demand and choose one essential action.', family: ACTION_FAMILIES[4], mode: 'timer', duration: 90, tags: ['relief', 'pause', 'tired'], baseScore: 2 }),
+    createTrialAction({ id: 'fatigue-water', label: 'Stand up, drink water, and reset posture.', family: ACTION_FAMILIES[2], mode: 'timer', duration: 60, tags: ['movement', 'grounding', 'in bed'], baseScore: 2 }),
+    createTrialAction({ id: 'fatigue-bed', label: 'Get out of bed and turn on the light.', family: ACTION_FAMILIES[0], mode: 'timer', duration: 60, tags: ['in bed', 'tired', 'grounding'] }),
+    createTrialAction({ id: 'fatigue-alt', label: 'Take a 60-second pause before deciding next steps.', family: ACTION_FAMILIES[8], mode: 'timer', duration: 60, tags: ['pause', 'overwhelmed'], tier: 'secondary' })
+  ],
+  Pain: [
+    createTrialAction({ id: 'pain-shift', label: 'Change position and reduce effort now.', family: ACTION_FAMILIES[4], mode: 'timer', duration: 90, tags: ['relief', 'in bed', 'at desk'], baseScore: 2 }),
+    createTrialAction({ id: 'pain-walk', label: 'Walk slowly for one minute if possible.', family: ACTION_FAMILIES[2], mode: 'timer', duration: 60, tags: ['movement', 'restless'] }),
+    createTrialAction({ id: 'pain-ground', label: 'Name one body signal without judging it.', family: ACTION_FAMILIES[6], mode: 'text', prompt: 'What does your body feel like right now?', tags: ['grounding', 'overwhelmed'] }),
+    createTrialAction({ id: 'pain-alt', label: 'Shift into recovery mode for 2 minutes.', family: ACTION_FAMILIES[8], mode: 'timer', duration: 120, tags: ['distance', 'pause', 'overwhelmed'], tier: 'secondary', baseScore: 2 })
+  ],
+  Emotion: [
+    createTrialAction({ id: 'emotion-name', label: 'Name the emotion before acting.', family: ACTION_FAMILIES[6], mode: 'select', prompt: 'What emotion is hottest right now?', options: EMOTIONS, tags: ['grounding', 'triggered', 'with people'], baseScore: 2 }),
+    createTrialAction({ id: 'emotion-write', label: 'Write one true sentence about what you feel.', family: ACTION_FAMILIES[5], mode: 'text', prompt: 'Write one true sentence about this emotion.', tags: ['grounding', 'numb', 'overwhelmed'] }),
+    createTrialAction({ id: 'emotion-step', label: 'Step away and pause for 2 minutes.', family: ACTION_FAMILIES[0], mode: 'timer', duration: 120, tags: ['distance', 'pause', 'out'], baseScore: 2 }),
+    createTrialAction({ id: 'emotion-alt', label: 'Keep your voice low and your body still for 60 seconds.', family: ACTION_FAMILIES[3], mode: 'timer', duration: 60, tags: ['pause', 'with people'], tier: 'secondary' })
+  ]
 };
 
 const REGULATE_ACTIONS = {
@@ -310,7 +357,7 @@ export default function SelfMasteryPrototype() {
   const [flowStep, setFlowStep] = useState(0);
   const [trialType, setTrialType] = useState('');
   const [trialContext, setTrialContext] = useState({ where: '', state: '', need: '' });
-  const [selectedActionKey, setSelectedActionKey] = useState('primary');
+  const [selectedActionKey, setSelectedActionKey] = useState('');
   const [holdSeconds, setHoldSeconds] = useState(60);
   const [masteryType, setMasteryType] = useState('');
   const [masteryContext, setMasteryContext] = useState('');
@@ -376,7 +423,7 @@ export default function SelfMasteryPrototype() {
     setFlowStep(0);
     setTrialType('');
     setTrialContext({ where: '', state: '', need: '' });
-    setSelectedActionKey('primary');
+    setSelectedActionKey('');
     setHoldSeconds(60);
     setMasteryType('');
     setMasteryContext('');
@@ -406,34 +453,34 @@ export default function SelfMasteryPrototype() {
   }
 
   function getContextWeightedTrialActions() {
-    if (!trialType) return { primary: null, alternate: null };
+    if (!trialType) return { primary: [], secondary: null };
     const normalizedContext = [trialContext.where, trialContext.state, trialContext.need]
       .filter(Boolean)
       .map((item) => item.toLowerCase());
-    const actionList = Object.entries(TRIAL_ACTIONS[trialType]).map(([key, action]) => {
-      const score = normalizedContext.reduce((total, tag) => total + (action.tags?.includes(tag) ? 1 : 0), 0);
-      return { key, action, score };
+    const actionList = (TRIAL_ACTIONS[trialType] || []).map((action) => {
+      const contextHits = normalizedContext.reduce((total, tag) => total + (action.tags?.includes(tag) ? 1 : 0), 0);
+      const score = (action.baseScore || 0) + (contextHits * 3);
+      return { action, score, contextHits };
     }).sort((a, b) => b.score - a.score);
 
-    return {
-      primary: actionList[0] || null,
-      alternate: actionList[1] || null
-    };
+    const primary = actionList.filter((item) => item.action.tier !== 'secondary').slice(0, 3);
+    const secondary = actionList.find((item) => item.action.tier === 'secondary') || null;
+    return { primary, secondary };
   }
 
   function currentTrialAction() {
-    const weighted = getContextWeightedTrialActions();
-    return selectedActionKey === 'primary' ? weighted.primary?.action : weighted.alternate?.action;
+    return (TRIAL_ACTIONS[trialType] || []).find((action) => action.id === selectedActionKey) || null;
   }
 
   function currentRegulateAction() {
     return regulateNeed ? REGULATE_ACTIONS[regulateNeed][selectedActionKey] : null;
   }
 
-  function beginTrialAction(actionKey) {
-    const weighted = getContextWeightedTrialActions();
-    const action = actionKey === 'primary' ? weighted.primary?.action : weighted.alternate?.action;
-    setSelectedActionKey(actionKey);
+  function beginTrialAction(actionId) {
+    const action = (TRIAL_ACTIONS[trialType] || []).find((item) => item.id === actionId);
+    setSelectedActionKey(actionId);
+    setCaptureText('');
+    setCaptureChoice('');
     if (!action) return;
     if (action.mode === 'timer') {
       setHoldSeconds(action.duration);
@@ -549,9 +596,9 @@ export default function SelfMasteryPrototype() {
     }
 
     const trialActionOptions = getContextWeightedTrialActions();
-    const actionA = trialActionOptions.primary?.action;
-    const actionB = trialActionOptions.alternate?.action;
-    const actionAContextHits = trialActionOptions.primary?.score || 0;
+    const hasContext = Boolean(trialContext.where || trialContext.state || trialContext.need);
+    const hasMatchedContext = trialActionOptions.primary.some((item) => item.contextHits > 0)
+      || (trialActionOptions.secondary?.contextHits || 0) > 0;
 
     if (flowStep === 1) {
       return (
@@ -574,33 +621,24 @@ export default function SelfMasteryPrototype() {
                 ))}
               </div>
             </Card>
-            <Card title="Primary" tone="trial">
-              {actionAContextHits > 0 ? <div className="mb-2 text-xs uppercase tracking-[0.14em] text-red-300/90">Adjusted for your context</div> : null}
-              <div className="text-2xl font-semibold leading-tight text-zinc-50">{actionA.label}</div>
-              {actionA.mode === 'text' ? (
-                <>
-                  <textarea
-                    value={captureText}
-                    onChange={(e) => setCaptureText(e.target.value)}
-                    placeholder="Write one true sentence..."
-                    className="mt-4 min-h-[120px] w-full resize-none rounded-2xl border border-zinc-800 bg-black p-4 text-zinc-100 outline-none placeholder:text-zinc-600"
-                  />
-                  <button
-                    onClick={() => { setSelectedActionKey('primary'); setFlowStep(4); }}
-                    disabled={!captureText.trim()}
-                    className="mt-4 rounded-2xl bg-zinc-100 px-4 py-3 font-medium text-black disabled:opacity-50"
-                  >
-                    Save and continue
-                  </button>
-                </>
-              ) : (
-                <button onClick={() => beginTrialAction('primary')} className="mt-4 rounded-2xl bg-zinc-100 px-4 py-3 font-medium text-black">Start this</button>
-              )}
+            <Card title="Primary actions" tone="trial">
+              {hasContext && hasMatchedContext ? <div className="mb-3 text-xs uppercase tracking-[0.14em] text-red-300/90">Adjusted for your context</div> : null}
+              <div className="space-y-3">
+                {trialActionOptions.primary.map((item, index) => (
+                  <div key={item.action.id} className="rounded-2xl border border-zinc-800 bg-black/30 p-3">
+                    <div className="text-xs uppercase tracking-[0.16em] text-zinc-500">Option {index + 1}</div>
+                    <div className="mt-1 text-lg font-medium leading-snug text-zinc-100">{item.action.label}</div>
+                    <button onClick={() => beginTrialAction(item.action.id)} className="mt-3 rounded-2xl bg-zinc-100 px-4 py-2.5 text-sm font-medium text-black">Start this</button>
+                  </div>
+                ))}
+              </div>
             </Card>
-            <Card title="Alternate">
-              <div className="text-lg leading-relaxed text-zinc-200">{actionB.label}</div>
-              <button onClick={() => beginTrialAction('alternate')} className="mt-4 rounded-2xl border border-zinc-800 px-4 py-3 text-zinc-200">Use alternate</button>
-            </Card>
+            {trialActionOptions.secondary ? (
+              <Card title="Alternate">
+                <div className="text-lg leading-relaxed text-zinc-200">{trialActionOptions.secondary.action.label}</div>
+                <button onClick={() => beginTrialAction(trialActionOptions.secondary.action.id)} className="mt-4 rounded-2xl border border-zinc-800 px-4 py-3 text-zinc-200">Use alternate</button>
+              </Card>
+            ) : null}
           </div>
         </div>
       );
